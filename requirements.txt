@@ -1,0 +1,5 @@
+dearpygui
+mutagen
+pygame
+argparse
+pytube
