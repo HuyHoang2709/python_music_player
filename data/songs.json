@@ -1,11 +1,3 @@
 {
-    "songs": [
-        "E:/Workspace/BTL/Python/songs/Alone.mp3",
-        "E:/Workspace/BTL/Python/songs/Energy.mp3",
-        "E:/Workspace/BTL/Python/songs/Fade.mp3",
-        "E:/Workspace/BTL/Python/songs/Legend.mp3",
-        "E:/Workspace/BTL/Python/songs/Nevada.mp3",
-        "E:/Workspace/BTL/Python/songs/Something Just Like This.mp3",
-        "E:/Workspace/BTL/Python/songs/Unstoppable.mp3"
-    ]
+    "songs": []
 }

@@ -1,6 +1,7 @@
 from mutagen.mp3 import MP3
 from tkinter import Tk, filedialog
-import youtube_dl
+from pytube import YouTube
+from moviepy.editor import *
 import dearpygui.dearpygui as dpg
 import ntpath
 import json
@@ -14,7 +15,7 @@ import atexit
 global state
 global no
 global yt_url
-yt_url = None
+yt_url = ""
 state = None
 no = 0
 
@@ -26,6 +27,44 @@ pygame.mixer.init()
 
 _DEFAULT_MUSIC_VOLUME = 0.5
 pygame.mixer.music.set_volume(_DEFAULT_MUSIC_VOLUME)
+
+
+def get_youtube_url(sender, app_data):
+    global yt_url
+    yt_url = app_data
+
+
+def download_mp3():
+    # Get Youtube video
+    video = YouTube(yt_url)
+    dpg.configure_item(item="search_box", default_value="")
+    dpg.configure_item(item="search_btn", label="Downloading...")
+    stream = video.streams.get_lowest_resolution()
+    out_file = stream.download(output_path="./Downloads")
+
+    # Convert video to audio
+    video = VideoFileClip(out_file)
+    filename = out_file.replace("mp4", "mp3")
+    video.audio.write_audiofile(out_file.replace("mp4", "mp3"))
+    dpg.configure_item(item="search_btn", label="Downloaded")
+    time.sleep(0.7)
+    dpg.configure_item(item="search_btn", label="Download")
+
+    # Add downloaded song to list
+    data = json.load(open("data/songs.json", "r"))
+    root = Tk()
+    root.withdraw()
+    if filename not in data["songs"]:
+            update_database(filename)
+            dpg.add_button(
+                label=f"{ntpath.basename(filename)}",
+                callback=play,
+                width=-1,
+                height=50,
+                user_data=filename.replace("\\", "/"),
+                parent="list",
+            )
+            dpg.add_spacer(height=2, parent="list")
 
 
 def update_volume(sender, app_data):
@@ -257,6 +296,18 @@ with dpg.font_registry():
 with dpg.window(tag="main", label="window title"):
     with dpg.child_window(autosize_x=True, height=60, no_scrollbar=True):
         dpg.add_text(f"Now Playing : ", tag="csong")
+    dpg.add_spacer(height=2)
+
+    with dpg.group(horizontal=True):
+        dpg.add_input_text(
+            width=800,
+            hint="Paste Youtube video url here",
+            tag="search_box",
+            callback=get_youtube_url,
+        )
+        dpg.add_button(
+            width=150, label="Download", tag="search_btn", callback=download_mp3
+        )
     dpg.add_spacer(height=2)
 
     with dpg.group(horizontal=True):
