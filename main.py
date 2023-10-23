@@ -1,4 +1,5 @@
 from mutagen.mp3 import MP3
+import tkinter as tk
 from tkinter import Tk, filedialog
 from pytube import YouTube
 from moviepy.editor import *
@@ -93,13 +94,25 @@ def update_database(filename: str):
     json.dump(data, open("data/songs.json", "r+"), indent=4)
 
 
-def update_slider():
+def update_slider(sender, user_data):
     global state
+    # value = dpg.get_value(sender)
+    cnt = 0
+    print(pygame.mixer.music.get_busy())
     while pygame.mixer.music.get_busy() or state != "paused":
+        cnt += 1
+        print(cnt)
         dpg.configure_item(
             item="pos", default_value=pygame.mixer.music.get_pos() / 1000
         )
         time.sleep(0.5)
+
+
+def update_slider_user(sender, user_data):
+    value = int(dpg.get_value(sender))
+    pygame.mixer.music.set_pos(value)
+    thread = threading.Thread(target=update_slider, daemon=False)
+    thread.start()
 
 
 def play(sender, app_data, user_data):
@@ -131,6 +144,8 @@ def play_pause():
     elif state == "paused":
         state = "playing"
         pygame.mixer.music.unpause()
+        thread = threading.Thread(target=update_slider, daemon=False)
+        thread.start()
         dpg.configure_item("play", label="Pause")
         dpg.configure_item("cstate", default_value=f"State: Playing")
     else:
@@ -208,13 +223,15 @@ def add_folder():
     for filename in os.listdir(folder):
         if filename.endswith(".mp3" or ".wav" or ".ogg"):
             if filename not in data["songs"]:
-                update_database(os.path.join(folder, filename).replace("\\", "/"))
+                update_database(os.path.join(
+                    folder, filename).replace("\\", "/"))
                 dpg.add_button(
                     label=f"{ntpath.basename(filename)}",
                     callback=play,
                     width=-1,
                     height=50,
-                    user_data=os.path.join(folder, filename).replace("\\", "/"),
+                    user_data=os.path.join(
+                        folder, filename).replace("\\", "/"),
                     parent="list",
                 )
                 dpg.add_spacer(height=2, parent="list")
@@ -242,6 +259,48 @@ def remove_all():
     json.dump(songs, open("data/songs.json", "w"), indent=4)
     dpg.delete_item("list", children_only=True)
     load_database()
+
+
+def open_custom_dialog():
+    custom_dialog = tk.Toplevel(root)
+    custom_dialog.title("Custom Dialog")
+
+    label = tk.Label(custom_dialog, text="Enter something:")
+    label.pack()
+
+    entry = tk.Entry(custom_dialog)
+    entry.pack()
+
+    def submit():
+        user_input = entry.get()
+        print("You entered:", user_input)
+        custom_dialog.destroy()
+
+    submit_button = tk.Button(custom_dialog, text="Submit", command=submit)
+    submit_button.pack()
+
+
+def get_youtube_url():
+    root = tk.Tk()
+    root.withdraw()
+    yt_url = filedialog.askstring("Youtube URL", "Enter a Youtube URL")
+    root.quit()
+    return yt_url
+
+
+def download_youtube_audio(yt_url):
+    if yt_url:
+        try:
+            with youtube_dl.YoutubeDL() as ydl:
+                info = ydl.extract_info(yt_url, download=False)
+                title = info["title"]
+                filename = f"music/{title}.mp3"
+                ydl.download([yt_url])
+                update_database(filename)
+                return filename
+        except Exception as e:
+            print(f"Error downloading: {e}")
+    return None
 
 
 with dpg.theme(tag="base"):
@@ -316,10 +375,15 @@ with dpg.window(tag="main", label="window title"):
             dpg.add_spacer(height=5)
             dpg.add_separator()
             dpg.add_spacer(height=5)
-            dpg.add_button(label="Add File", width=-1, height=28, callback=add_files)
-            dpg.add_button(label="Add Folder", width=-1, height=28, callback=add_folder)
+            dpg.add_button(label="Add File", width=-1,
+                           height=28, callback=add_files)
+            dpg.add_button(label="Add Folder", width=-1,
+                           height=28, callback=add_folder)
             dpg.add_button(
                 label="Remove All Songs", width=-1, height=28, callback=remove_all
+            )
+            dpg.add_button(
+                label="Song from Youtube", width=-1, height=28, callback=open_custom_dialog
             )
             dpg.add_spacer(height=5)
             dpg.add_separator()
@@ -364,7 +428,8 @@ with dpg.window(tag="main", label="window title"):
                         default_value=_DEFAULT_MUSIC_VOLUME * 100,
                         callback=update_volume,
                     )
-                    dpg.add_slider_float(tag="pos", width=-1, pos=(140, 59), format="")
+                    dpg.add_slider_float(
+                        tag="pos", width=-1, pos=(140, 59), format="", callback=update_slider_user)
 
             with dpg.child_window(autosize_x=True, delay_search=True):
                 with dpg.group(horizontal=True, tag="query"):
