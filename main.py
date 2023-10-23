@@ -1,3 +1,4 @@
+from logging import root
 from mutagen.mp3 import MP3
 import tkinter as tk
 from tkinter import Tk, filedialog
@@ -280,29 +281,6 @@ def open_custom_dialog():
     submit_button.pack()
 
 
-def get_youtube_url():
-    root = tk.Tk()
-    root.withdraw()
-    yt_url = filedialog.askstring("Youtube URL", "Enter a Youtube URL")
-    root.quit()
-    return yt_url
-
-
-def download_youtube_audio(yt_url):
-    if yt_url:
-        try:
-            with youtube_dl.YoutubeDL() as ydl:
-                info = ydl.extract_info(yt_url, download=False)
-                title = info["title"]
-                filename = f"music/{title}.mp3"
-                ydl.download([yt_url])
-                update_database(filename)
-                return filename
-        except Exception as e:
-            print(f"Error downloading: {e}")
-    return None
-
-
 with dpg.theme(tag="base"):
     with dpg.theme_component():
         dpg.add_theme_color(dpg.mvThemeCol_Button, (130, 142, 250))
@@ -381,9 +359,6 @@ with dpg.window(tag="main", label="window title"):
                            height=28, callback=add_folder)
             dpg.add_button(
                 label="Remove All Songs", width=-1, height=28, callback=remove_all
-            )
-            dpg.add_button(
-                label="Song from Youtube", width=-1, height=28, callback=open_custom_dialog
             )
             dpg.add_spacer(height=5)
             dpg.add_separator()
