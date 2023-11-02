@@ -3,3 +3,4 @@ mutagen
 pygame
 argparse
 pytube
+moviepy
